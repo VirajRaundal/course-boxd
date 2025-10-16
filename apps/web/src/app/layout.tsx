@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
+import { auth } from "@/auth";
+import { signOutAction } from "@/actions/auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,11 +28,13 @@ const navItems = [
   { href: "/about", label: "About" },
 ];
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="en" className="bg-background text-foreground">
       <body
@@ -59,20 +63,42 @@ export default function RootLayout({
                   </Link>
                 ))}
               </nav>
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/login"
-                  className="rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary hover:text-secondary-foreground"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/register"
-                  className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-                >
-                  Join waitlist
-                </Link>
-              </div>
+              {session?.user ? (
+                <div className="flex items-center gap-3">
+                  <span className="hidden text-sm text-muted-foreground sm:inline-flex">
+                    {session.user.name ?? session.user.username}
+                  </span>
+                  <Link
+                    href="/account"
+                    className="rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary hover:text-secondary-foreground"
+                  >
+                    Account
+                  </Link>
+                  <form action={signOutAction}>
+                    <button
+                      type="submit"
+                      className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+                    >
+                      Sign out
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/login"
+                    className="rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary hover:text-secondary-foreground"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+                  >
+                    Create account
+                  </Link>
+                </div>
+              )}
             </div>
           </header>
           <main className="relative flex-1">

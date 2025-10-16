@@ -14,26 +14,37 @@ enum InteractionTargetType {
   DIARY_ENTRY
 }
 
+enum VisibilityPreference {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
 model User {
-  id            String         @id @default(uuid()) @db.Uuid
-  email         String         @unique
-  username      String         @unique
-  name          String?
-  avatarUrl     String?
-  bio           String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  courses       Course[]       @relation("CourseCreator")
-  videos        Video[]        @relation("VideoCreator")
-  reviews       Review[]
-  lists         List[]
-  diaryEntries  DiaryEntry[]
-  courseRatings CourseRating[]
-  videoRatings  VideoRating[]
-  following     Follow[]       @relation("UserFollowing")
-  followers     Follow[]       @relation("UserFollowers")
-  likes         Like[]
-  comments      Comment[]
+  id                 String               @id @default(uuid()) @db.Uuid
+  email              String               @unique
+  username           String               @unique
+  name               String?
+  avatarUrl          String?
+  bio                String?
+  passwordHash       String?
+  emailVerified      DateTime?
+  defaultVisibility  VisibilityPreference @default(PUBLIC)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  courses            Course[]             @relation("CourseCreator")
+  videos             Video[]              @relation("VideoCreator")
+  reviews            Review[]
+  lists              List[]
+  diaryEntries       DiaryEntry[]
+  courseRatings      CourseRating[]
+  videoRatings       VideoRating[]
+  following          Follow[]             @relation("UserFollowing")
+  followers          Follow[]             @relation("UserFollowers")
+  likes              Like[]
+  comments           Comment[]
+  accounts           Account[]
+  sessions           Session[]
 }
 
 model Course {
@@ -206,4 +217,42 @@ model Comment {
   @@index([parentId])
   @@index([userId])
   @@map("Comments")
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String   @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("Accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String   @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("Sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("VerificationTokens")
 }
