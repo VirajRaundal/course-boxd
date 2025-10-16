@@ -21,70 +21,86 @@ enum VisibilityPreference {
 }
 
 model User {
-  id                 String               @id @default(uuid()) @db.Uuid
-  email              String               @unique
-  username           String               @unique
-  name               String?
-  avatarUrl          String?
-  bio                String?
-  passwordHash       String?
-  emailVerified      DateTime?
-  defaultVisibility  VisibilityPreference @default(PUBLIC)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  courses            Course[]             @relation("CourseCreator")
-  videos             Video[]              @relation("VideoCreator")
-  reviews            Review[]
-  lists              List[]
-  diaryEntries       DiaryEntry[]
-  courseRatings      CourseRating[]
-  videoRatings       VideoRating[]
-  following          Follow[]             @relation("UserFollowing")
-  followers          Follow[]             @relation("UserFollowers")
-  likes              Like[]
-  comments           Comment[]
-  accounts           Account[]
-  sessions           Session[]
+  id                String               @id @default(uuid()) @db.Uuid
+  email             String               @unique
+  username          String               @unique
+  name              String?
+  avatarUrl         String?
+  bio               String?
+  passwordHash      String?
+  emailVerified     DateTime?
+  defaultVisibility VisibilityPreference @default(PUBLIC)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  courses           Course[]             @relation("CourseCreator")
+  videos            Video[]              @relation("VideoCreator")
+  reviews           Review[]
+  lists             List[]
+  diaryEntries      DiaryEntry[]
+  courseRatings     CourseRating[]
+  videoRatings      VideoRating[]
+  following         Follow[]             @relation("UserFollowing")
+  followers         Follow[]             @relation("UserFollowers")
+  likes             Like[]
+  comments          Comment[]
+  accounts          Account[]
+  sessions          Session[]
+  wishlists         Wishlist[]
+  userCourseStatus  UserCourseStatus[]
 }
 
 model Course {
-  id            String         @id @default(uuid()) @db.Uuid
-  slug          String         @unique
-  title         String
-  summary       String?
-  description   String?
-  creatorId     String?        @db.Uuid
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  creator       User?          @relation("CourseCreator", fields: [creatorId], references: [id])
-  videos        Video[]
-  reviews       Review[]
-  diaryEntries  DiaryEntry[]
-  courseRatings CourseRating[]
+  id               String             @id @default(uuid()) @db.Uuid
+  slug             String             @unique
+  title            String
+  summary          String?
+  description      String?
+  provider         String?
+  providerUrl      String?
+  thumbnailUrl     String?
+  externalId       String?
+  creatorId        String?            @db.Uuid
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  creator          User?              @relation("CourseCreator", fields: [creatorId], references: [id])
+  videos           Video[]
+  reviews          Review[]
+  diaryEntries     DiaryEntry[]
+  diaryEntryItems  DiaryEntryItem[]
+  courseRatings    CourseRating[]
+  listCourses      ListCourse[]
+  wishlistCourses  WishlistCourse[]
+  userCourseStatus UserCourseStatus[]
 
   @@index([creatorId])
+  @@index([provider])
   @@map("Courses")
 }
 
 model Video {
-  id              String        @id @default(uuid()) @db.Uuid
-  courseId        String        @db.Uuid
-  slug            String        @unique
+  id              String           @id @default(uuid()) @db.Uuid
+  courseId        String           @db.Uuid
+  slug            String           @unique
   title           String
   description     String?
   url             String
   durationSeconds Int?
-  creatorId       String?       @db.Uuid
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  course          Course        @relation(fields: [courseId], references: [id])
-  creator         User?         @relation("VideoCreator", fields: [creatorId], references: [id])
+  provider        String?
+  externalId      String?
+  thumbnailUrl    String?
+  creatorId       String?          @db.Uuid
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  course          Course           @relation(fields: [courseId], references: [id])
+  creator         User?            @relation("VideoCreator", fields: [creatorId], references: [id])
   reviews         Review[]
   diaryEntries    DiaryEntry[]
+  diaryEntryItems DiaryEntryItem[]
   videoRatings    VideoRating[]
 
   @@index([courseId])
   @@index([creatorId])
+  @@index([provider])
   @@map("Videos")
 }
 
@@ -108,31 +124,32 @@ model Review {
 }
 
 model List {
-  id          String   @id @default(uuid()) @db.Uuid
-  authorId    String   @db.Uuid
+  id          String       @id @default(uuid()) @db.Uuid
+  authorId    String       @db.Uuid
   title       String
   description String?
-  items       Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  author      User     @relation(fields: [authorId], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  author      User         @relation(fields: [authorId], references: [id])
+  listCourses ListCourse[]
 
   @@index([authorId])
   @@map("Lists")
 }
 
 model DiaryEntry {
-  id          String   @id @default(uuid()) @db.Uuid
-  authorId    String   @db.Uuid
-  courseId    String?  @db.Uuid
-  videoId     String?  @db.Uuid
+  id          String           @id @default(uuid()) @db.Uuid
+  authorId    String           @db.Uuid
+  courseId    String?          @db.Uuid
+  videoId     String?          @db.Uuid
   entryDate   DateTime
   reflections String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  author      User     @relation(fields: [authorId], references: [id])
-  course      Course?  @relation(fields: [courseId], references: [id])
-  video       Video?   @relation(fields: [videoId], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  author      User             @relation(fields: [authorId], references: [id])
+  course      Course?          @relation(fields: [courseId], references: [id])
+  video       Video?           @relation(fields: [videoId], references: [id])
+  items       DiaryEntryItem[]
 
   @@index([authorId])
   @@index([courseId])
@@ -220,19 +237,19 @@ model Comment {
 }
 
 model Account {
-  id                String   @id @default(cuid())
-  userId            String   @db.Uuid
+  id                String  @id @default(cuid())
+  userId            String  @db.Uuid
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?  @db.Text
-  access_token      String?  @db.Text
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?  @db.Text
+  id_token          String? @db.Text
   session_state     String?
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("Accounts")
@@ -255,4 +272,96 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("VerificationTokens")
+}
+
+model ListCourse {
+  id        String   @id @default(uuid()) @db.Uuid
+  listId    String   @db.Uuid
+  courseId  String   @db.Uuid
+  position  Int
+  notes     String?
+  createdAt DateTime @default(now())
+  list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, courseId])
+  @@index([listId])
+  @@index([courseId])
+  @@map("ListCourses")
+}
+
+model DiaryEntryItem {
+  id           String     @id @default(uuid()) @db.Uuid
+  diaryEntryId String     @db.Uuid
+  courseId     String?    @db.Uuid
+  videoId      String?    @db.Uuid
+  notes        String?
+  position     Int
+  createdAt    DateTime   @default(now())
+  diaryEntry   DiaryEntry @relation(fields: [diaryEntryId], references: [id], onDelete: Cascade)
+  course       Course?    @relation(fields: [courseId], references: [id])
+  video        Video?     @relation(fields: [videoId], references: [id])
+
+  @@index([diaryEntryId])
+  @@index([courseId])
+  @@index([videoId])
+  @@map("DiaryEntryItems")
+}
+
+model Wishlist {
+  id              String           @id @default(uuid()) @db.Uuid
+  userId          String           @db.Uuid
+  name            String           @default("My Wishlist")
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wishlistCourses WishlistCourse[]
+
+  @@index([userId])
+  @@map("Wishlists")
+}
+
+model WishlistCourse {
+  id         String   @id @default(uuid()) @db.Uuid
+  wishlistId String   @db.Uuid
+  courseId   String   @db.Uuid
+  priority   Int      @default(0)
+  notes      String?
+  createdAt  DateTime @default(now())
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([wishlistId, courseId])
+  @@index([wishlistId])
+  @@index([courseId])
+  @@map("WishlistCourses")
+}
+
+enum CourseStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  DROPPED
+}
+
+model UserCourseStatus {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @db.Uuid
+  courseId       String       @db.Uuid
+  status         CourseStatus @default(NOT_STARTED)
+  progress       Int          @default(0)
+  lastAccessedAt DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@map("UserCourseStatuses")
 }

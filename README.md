@@ -83,16 +83,21 @@ The `@course-boxd/database` workspace houses the Prisma schema, generated client
 
 ### Schema highlights
 
+- `Courses` and `Videos` include provider metadata fields (`provider`, `providerUrl`, `externalId`, `thumbnailUrl`) for tracking content from external platforms like Udemy, YouTube, etc.
 - `CourseRatings` and `VideoRatings` store star ratings in 0.5 increments out of five and restrict duplicate ratings per user.
+- `ListCourses` is a junction table connecting Lists to Courses with position ordering and notes.
+- `DiaryEntryItems` allows a diary entry to track multiple courses/videos with position ordering.
+- `Wishlists` and `WishlistCourses` enable users to save courses they want to take later with priority ordering.
+- `UserCourseStatus` tracks each user's progress through courses (NOT_STARTED, IN_PROGRESS, COMPLETED, DROPPED) with progress percentage and timestamps.
 - `Follows` models the follower/following graph with a composite primary key.
 - `Likes` and `Comments` use a polymorphic `InteractionTargetType` enum, allowing users to react to reviews, lists, or diary entries while maintaining indexed lookups.
 
 ### Common commands
 
-1. Configure `DATABASE_URL` and `DIRECT_DATABASE_URL` in your `.env` file with Supabase connection strings.
+1. Configure `DATABASE_URL` and `DIRECT_DATABASE_URL` in your `.env` file with Supabase connection strings (see `.env.example` for reference).
 2. `npm run db:generate` — generate the typed Prisma client.
 3. `npm run db:migrate` — apply pending migrations locally.
-4. `npm run seed:db` — populate example courses, videos, followers, likes, comments, and ratings.
+4. `npm run seed:db` — populate example data including users, courses with provider metadata, videos, wishlists, user progress tracking, lists, diary entries, followers, likes, comments, and ratings.
 
 ### Aggregation helpers
 
