@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 
 export const metadata: Metadata = {
   title: "Studio | CourseBoxd",
   description: "Design and build courses with CourseBoxd Studio.",
 };
 
-export default function StudioPage() {
+export default async function StudioPage() {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/login?callbackUrl=/studio");
+  }
+
   return (
     <section className="space-y-6">
       <header className="space-y-2">

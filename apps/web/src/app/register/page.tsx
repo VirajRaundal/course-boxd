@@ -1,26 +1,49 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { VisibilityPreference } from "@prisma/client";
+import { auth } from "@/auth";
+import { RegisterForm } from "@/components/auth/register-form";
 
 export const metadata: Metadata = {
-  title: "Join the waitlist | CourseBoxd",
+  title: "Create an account | CourseBoxd",
 };
 
-export default function RegisterPage() {
+function safeRedirect(target?: string | string[] | null) {
+  if (!target || typeof target !== "string") {
+    return "/studio";
+  }
+
+  return target.startsWith("/") ? target : "/studio";
+}
+
+const visibilityOptions = Object.values(VisibilityPreference);
+
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: { callbackUrl?: string };
+}) {
+  const session = await auth();
+  const callbackUrl = searchParams?.callbackUrl;
+
+  if (session?.user) {
+    redirect(safeRedirect(callbackUrl));
+  }
+
   return (
-    <section className="mx-auto max-w-lg space-y-4 rounded-xl border border-border bg-background/70 p-8 shadow-sm">
-      <header className="space-y-1 text-center">
+    <section className="mx-auto max-w-2xl space-y-6 rounded-xl border border-border bg-background/70 p-8 shadow-sm">
+      <header className="space-y-2 text-center">
         <h1 className="text-3xl font-semibold tracking-tight">
-          Join the waitlist
+          Create your CourseBoxd account
         </h1>
         <p className="text-sm text-muted-foreground">
-          Be the first to know when CourseBoxd launches.
+          Join the community, build courses, and manage your learning hub.
         </p>
       </header>
-      <div className="space-y-3 text-sm text-muted-foreground">
-        <p>
-          Registration flow coming soon. This is a placeholder page to confirm
-          routing and layout structure are working.
-        </p>
-      </div>
+      <RegisterForm
+        callbackUrl={callbackUrl}
+        visibilityOptions={visibilityOptions}
+      />
     </section>
   );
 }
