@@ -7,7 +7,7 @@ Your launchpad for building and shipping high-quality learning experiences.
 This is a monorepo using npm workspaces:
 
 - `apps/web` - Next.js 15+ web application
-- `packages/*` - Shared packages (coming soon)
+- `packages/database` - Prisma schema, migrations, and database helpers
 
 ## Getting Started
 
@@ -55,6 +55,10 @@ npm run start
 - `npm run format` - Format all files with Prettier
 - `npm run format:check` - Check formatting without making changes
 - `npm run type-check` - Run TypeScript type checking
+- `npm run db:generate` - Generate the Prisma client for the Supabase schema
+- `npm run db:migrate` - Run pending Prisma migrations against your database
+- `npm run db:deploy` - Apply migrations in environments where `prisma migrate dev` is unavailable
+- `npm run seed:db` - Seed the database with sample social data
 
 ### Web App Scripts (from root)
 
@@ -73,6 +77,36 @@ npm run start
 - **Formatting**: Prettier
 - **Git Hooks**: Husky + lint-staged
 
+## Database & Prisma
+
+The `@course-boxd/database` workspace houses the Prisma schema, generated client, migrations, and utility helpers for working with Supabase PostgreSQL.
+
+### Schema highlights
+
+- `CourseRatings` and `VideoRatings` store star ratings in 0.5 increments out of five and restrict duplicate ratings per user.
+- `Follows` models the follower/following graph with a composite primary key.
+- `Likes` and `Comments` use a polymorphic `InteractionTargetType` enum, allowing users to react to reviews, lists, or diary entries while maintaining indexed lookups.
+
+### Common commands
+
+1. Configure `DATABASE_URL` and `DIRECT_DATABASE_URL` in your `.env` file with Supabase connection strings.
+2. `npm run db:generate` — generate the typed Prisma client.
+3. `npm run db:migrate` — apply pending migrations locally.
+4. `npm run seed:db` — populate example courses, videos, followers, likes, comments, and ratings.
+
+### Aggregation helpers
+
+```ts
+import {
+  getCourseAverageRating,
+  getVideoRatingSummary,
+} from "@course-boxd/database";
+
+const courseAverage = await getCourseAverageRating(courseId);
+const videoSummary = await getVideoRatingSummary(videoId);
+// videoSummary = { average: number, count: number }
+```
+
 ## Project Structure
 
 ```
@@ -83,7 +117,8 @@ course-boxd/
 │       │   └── app/      # App Router pages
 │       ├── public/       # Static assets
 │       └── package.json
-├── packages/             # Shared packages (coming soon)
+├── packages/
+│   └── database/         # Prisma schema, migrations, and helpers
 ├── .husky/               # Git hooks
 ├── package.json          # Root package configuration
 └── README.md
@@ -91,7 +126,10 @@ course-boxd/
 
 ## Environment Variables
 
-Copy `.env.example` to `.env.local` in the `apps/web` directory and adjust the values as needed.
+Copy `.env.example` to `.env` at the repository root (and create `.env.local` inside `apps/web` for frontend-only overrides) and adjust the values as needed. The database connection strings should point at your Supabase PostgreSQL instance:
+
+- `DATABASE_URL` — pooled connection string (pgBouncer) for runtime application traffic
+- `DIRECT_DATABASE_URL` — direct connection string for running migrations, seeding, and local tooling
 
 ## Contributing
 
