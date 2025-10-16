@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+enum InteractionTargetType {
+  REVIEW
+  LIST
+  DIARY_ENTRY
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  email         String         @unique
+  username      String         @unique
+  name          String?
+  avatarUrl     String?
+  bio           String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  courses       Course[]       @relation("CourseCreator")
+  videos        Video[]        @relation("VideoCreator")
+  reviews       Review[]
+  lists         List[]
+  diaryEntries  DiaryEntry[]
+  courseRatings CourseRating[]
+  videoRatings  VideoRating[]
+  following     Follow[]       @relation("UserFollowing")
+  followers     Follow[]       @relation("UserFollowers")
+  likes         Like[]
+  comments      Comment[]
+}
+
+model Course {
+  id            String         @id @default(uuid()) @db.Uuid
+  slug          String         @unique
+  title         String
+  summary       String?
+  description   String?
+  creatorId     String?        @db.Uuid
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  creator       User?          @relation("CourseCreator", fields: [creatorId], references: [id])
+  videos        Video[]
+  reviews       Review[]
+  diaryEntries  DiaryEntry[]
+  courseRatings CourseRating[]
+
+  @@index([creatorId])
+  @@map("Courses")
+}
+
+model Video {
+  id              String        @id @default(uuid()) @db.Uuid
+  courseId        String        @db.Uuid
+  slug            String        @unique
+  title           String
+  description     String?
+  url             String
+  durationSeconds Int?
+  creatorId       String?       @db.Uuid
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  course          Course        @relation(fields: [courseId], references: [id])
+  creator         User?         @relation("VideoCreator", fields: [creatorId], references: [id])
+  reviews         Review[]
+  diaryEntries    DiaryEntry[]
+  videoRatings    VideoRating[]
+
+  @@index([courseId])
+  @@index([creatorId])
+  @@map("Videos")
+}
+
+model Review {
+  id        String   @id @default(uuid()) @db.Uuid
+  authorId  String   @db.Uuid
+  courseId  String?  @db.Uuid
+  videoId   String?  @db.Uuid
+  title     String?
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id])
+  course    Course?  @relation(fields: [courseId], references: [id])
+  video     Video?   @relation(fields: [videoId], references: [id])
+
+  @@index([authorId])
+  @@index([courseId])
+  @@index([videoId])
+  @@map("Reviews")
+}
+
+model List {
+  id          String   @id @default(uuid()) @db.Uuid
+  authorId    String   @db.Uuid
+  title       String
+  description String?
+  items       Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  author      User     @relation(fields: [authorId], references: [id])
+
+  @@index([authorId])
+  @@map("Lists")
+}
+
+model DiaryEntry {
+  id          String   @id @default(uuid()) @db.Uuid
+  authorId    String   @db.Uuid
+  courseId    String?  @db.Uuid
+  videoId     String?  @db.Uuid
+  entryDate   DateTime
+  reflections String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  author      User     @relation(fields: [authorId], references: [id])
+  course      Course?  @relation(fields: [courseId], references: [id])
+  video       Video?   @relation(fields: [videoId], references: [id])
+
+  @@index([authorId])
+  @@index([courseId])
+  @@index([videoId])
+  @@map("DiaryEntries")
+}
+
+model CourseRating {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  courseId  String   @db.Uuid
+  /// Ratings stored as 0-5 values in 0.5 increments (enforced via DB constraint).
+  rating    Decimal  @db.Decimal(2, 1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("CourseRatings")
+}
+
+model VideoRating {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  videoId   String   @db.Uuid
+  /// Ratings stored as 0-5 values in 0.5 increments (enforced via DB constraint).
+  rating    Decimal  @db.Decimal(2, 1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  video     Video    @relation(fields: [videoId], references: [id])
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
+  @@map("VideoRatings")
+}
+
+model Follow {
+  followerId  String   @db.Uuid
+  followingId String   @db.Uuid
+  createdAt   DateTime @default(now())
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id])
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id])
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+  @@map("Follows")
+}
+
+model Like {
+  id         String                @id @default(uuid()) @db.Uuid
+  userId     String                @db.Uuid
+  targetType InteractionTargetType
+  targetId   String                @db.Uuid
+  createdAt  DateTime              @default(now())
+  user       User                  @relation(fields: [userId], references: [id])
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@index([userId])
+  @@map("Likes")
+}
+
+model Comment {
+  id         String                @id @default(uuid()) @db.Uuid
+  userId     String                @db.Uuid
+  targetType InteractionTargetType
+  targetId   String                @db.Uuid
+  content    String
+  parentId   String?               @db.Uuid
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  user       User                  @relation(fields: [userId], references: [id])
+  parent     Comment?              @relation("CommentThread", fields: [parentId], references: [id])
+  replies    Comment[]             @relation("CommentThread")
+
+  @@index([targetType, targetId])
+  @@index([parentId])
+  @@index([userId])
+  @@map("Comments")
+}
