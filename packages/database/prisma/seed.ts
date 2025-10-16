@@ -1,4 +1,9 @@
-import { Prisma, PrismaClient, InteractionTargetType } from "@prisma/client";
+import {
+  Prisma,
+  PrismaClient,
+  InteractionTargetType,
+  CourseStatus,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -9,8 +14,13 @@ async function clearDatabase() {
   await prisma.courseRating.deleteMany();
   await prisma.videoRating.deleteMany();
   await prisma.review.deleteMany();
+  await prisma.diaryEntryItem.deleteMany();
   await prisma.diaryEntry.deleteMany();
+  await prisma.listCourse.deleteMany();
   await prisma.list.deleteMany();
+  await prisma.wishlistCourse.deleteMany();
+  await prisma.wishlist.deleteMany();
+  await prisma.userCourseStatus.deleteMany();
   await prisma.video.deleteMany();
   await prisma.course.deleteMany();
   await prisma.user.deleteMany();
@@ -56,7 +66,26 @@ async function main() {
       summary: "A project-based introduction to full stack development.",
       description:
         "Learn the fundamentals of building full stack applications by shipping features end-to-end.",
+      provider: "CourseBoxd",
+      providerUrl: "https://courseboxd.app/courses/full-stack-foundations",
+      thumbnailUrl: "https://example.com/thumbnails/full-stack.jpg",
+      externalId: "fsf-001",
       creatorId: alice.id,
+    },
+  });
+
+  const reactCourse = await prisma.course.create({
+    data: {
+      slug: "react-mastery",
+      title: "React Mastery",
+      summary: "Master React from fundamentals to advanced patterns.",
+      description:
+        "A comprehensive course covering React hooks, context, performance optimization, and more.",
+      provider: "Udemy",
+      providerUrl: "https://udemy.com/course/react-mastery",
+      thumbnailUrl: "https://example.com/thumbnails/react.jpg",
+      externalId: "udemy-react-001",
+      creatorId: bob.id,
     },
   });
 
@@ -67,6 +96,9 @@ async function main() {
       description: "Overview of the curriculum and setup instructions.",
       url: "https://videos.example.com/full-stack/getting-started",
       durationSeconds: 720,
+      provider: "YouTube",
+      externalId: "yt-fsf-intro",
+      thumbnailUrl: "https://example.com/thumbnails/intro-video.jpg",
       courseId: fullStackCourse.id,
       creatorId: alice.id,
     },
@@ -80,8 +112,26 @@ async function main() {
         "Dive into designing resilient API boundaries for your project.",
       url: "https://videos.example.com/full-stack/api-patterns",
       durationSeconds: 960,
+      provider: "YouTube",
+      externalId: "yt-fsf-api",
+      thumbnailUrl: "https://example.com/thumbnails/api-video.jpg",
       courseId: fullStackCourse.id,
       creatorId: alice.id,
+    },
+  });
+
+  const reactHooksVideo = await prisma.video.create({
+    data: {
+      slug: "react-hooks-deep-dive",
+      title: "React Hooks Deep Dive",
+      description: "Understanding useState, useEffect, and custom hooks.",
+      url: "https://videos.example.com/react/hooks",
+      durationSeconds: 1200,
+      provider: "Vimeo",
+      externalId: "vimeo-react-hooks",
+      thumbnailUrl: "https://example.com/thumbnails/hooks-video.jpg",
+      courseId: reactCourse.id,
+      creatorId: bob.id,
     },
   });
 
@@ -107,11 +157,25 @@ async function main() {
     data: {
       authorId: carol.id,
       title: "Backend Mastery Sprint",
-      description: "Chapters I revisit when I need a backend refresher.",
-      items: {
-        videos: [introVideo.id, apiPatternsVideo.id],
-      },
+      description: "Courses I revisit when I need a backend refresher.",
     },
+  });
+
+  await prisma.listCourse.createMany({
+    data: [
+      {
+        listId: curatedList.id,
+        courseId: fullStackCourse.id,
+        position: 1,
+        notes: "Great for API design patterns",
+      },
+      {
+        listId: curatedList.id,
+        courseId: reactCourse.id,
+        position: 2,
+        notes: "Useful for understanding state management",
+      },
+    ],
   });
 
   const diaryEntry = await prisma.diaryEntry.create({
@@ -122,6 +186,41 @@ async function main() {
       entryDate: new Date("2024-08-01T13:00:00Z"),
       reflections:
         "Set up the project workspace and deployed the starter app today.",
+    },
+  });
+
+  await prisma.diaryEntryItem.createMany({
+    data: [
+      {
+        diaryEntryId: diaryEntry.id,
+        courseId: fullStackCourse.id,
+        position: 1,
+        notes: "Completed initial setup",
+      },
+      {
+        diaryEntryId: diaryEntry.id,
+        videoId: introVideo.id,
+        position: 2,
+        notes: "Watched intro and took notes",
+      },
+    ],
+  });
+
+  const diaryEntry2 = await prisma.diaryEntry.create({
+    data: {
+      authorId: carol.id,
+      courseId: reactCourse.id,
+      entryDate: new Date("2024-08-05T10:00:00Z"),
+      reflections: "Started learning React hooks, very interesting!",
+    },
+  });
+
+  await prisma.diaryEntryItem.create({
+    data: {
+      diaryEntryId: diaryEntry2.id,
+      videoId: reactHooksVideo.id,
+      position: 1,
+      notes: "useState and useEffect are powerful",
     },
   });
 
@@ -137,6 +236,11 @@ async function main() {
         courseId: fullStackCourse.id,
         rating: new Prisma.Decimal(4.0),
       },
+      {
+        userId: carol.id,
+        courseId: reactCourse.id,
+        rating: new Prisma.Decimal(5.0),
+      },
     ],
     skipDuplicates: true,
   });
@@ -151,6 +255,11 @@ async function main() {
       {
         userId: bob.id,
         videoId: introVideo.id,
+        rating: new Prisma.Decimal(5.0),
+      },
+      {
+        userId: carol.id,
+        videoId: reactHooksVideo.id,
         rating: new Prisma.Decimal(5.0),
       },
     ],
@@ -229,7 +338,74 @@ async function main() {
     },
   });
 
-  console.log("Seeded users, social graph, ratings, and engagement data.");
+  const aliceWishlist = await prisma.wishlist.create({
+    data: {
+      userId: alice.id,
+      name: "Courses to Take",
+      description: "My learning wishlist for this year",
+    },
+  });
+
+  await prisma.wishlistCourse.createMany({
+    data: [
+      {
+        wishlistId: aliceWishlist.id,
+        courseId: reactCourse.id,
+        priority: 1,
+        notes: "Want to learn more about React performance",
+      },
+    ],
+  });
+
+  const bobWishlist = await prisma.wishlist.create({
+    data: {
+      userId: bob.id,
+      name: "My Wishlist",
+    },
+  });
+
+  await prisma.wishlistCourse.create({
+    data: {
+      wishlistId: bobWishlist.id,
+      courseId: reactCourse.id,
+      priority: 2,
+      notes: "Recommended by Carol",
+    },
+  });
+
+  await prisma.userCourseStatus.createMany({
+    data: [
+      {
+        userId: bob.id,
+        courseId: fullStackCourse.id,
+        status: CourseStatus.IN_PROGRESS,
+        progress: 35,
+        startedAt: new Date("2024-08-01T10:00:00Z"),
+        lastAccessedAt: new Date("2024-08-15T14:30:00Z"),
+      },
+      {
+        userId: carol.id,
+        courseId: reactCourse.id,
+        status: CourseStatus.IN_PROGRESS,
+        progress: 20,
+        startedAt: new Date("2024-08-05T09:00:00Z"),
+        lastAccessedAt: new Date("2024-08-10T16:00:00Z"),
+      },
+      {
+        userId: alice.id,
+        courseId: fullStackCourse.id,
+        status: CourseStatus.COMPLETED,
+        progress: 100,
+        startedAt: new Date("2024-06-01T10:00:00Z"),
+        completedAt: new Date("2024-07-15T18:00:00Z"),
+        lastAccessedAt: new Date("2024-07-15T18:00:00Z"),
+      },
+    ],
+  });
+
+  console.log(
+    "Seeded users, courses, videos, wishlists, user progress, social graph, ratings, and engagement data."
+  );
 }
 
 main()
